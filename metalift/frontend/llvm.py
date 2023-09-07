@@ -853,6 +853,12 @@ class Driver:
         for fn in self.fns.values():
             target += fn.target_lang_fn()
 
+
+        print("target:", target)
+        print("vars:", set(self.var_tracker.all()))
+        print("invAndPs:", synths)
+        print("vc:", vc)
+        print("loopAndPsInfor:", synths)
         synthesized: List[FnDeclRecursive] = run_synthesis(
             "test", target, set(self.var_tracker.all()), synths, [], vc, synths, "cvc5"
         )
