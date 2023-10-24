@@ -424,25 +424,6 @@ class Expr:
             else a
         ).simplify()
 
-    # convenience methods
-    def __add__(self, other: "Expr") -> "Add":
-        if isinstance(self, Add):
-            return Add(*self.args, other)
-        else:
-            return Add(self, other)
-
-    def __sub__(self, other: "Expr") -> "Sub":
-        if isinstance(self, Sub):
-            return Sub(*self.args, other)
-        else:
-            return Sub(self, other)
-
-    def __mul__(self, other: "Expr") -> "Mul":
-        if isinstance(self, Mul):
-            return Mul(*self.args, other)
-        else:
-            return Mul(self, other)
-
 
 ### START OF IR OBJECTS
 ObjectContainedT = Union[typing.Type["NewObject"], _GenericAlias]

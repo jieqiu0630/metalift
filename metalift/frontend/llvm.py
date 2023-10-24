@@ -58,6 +58,7 @@ from metalift.ir import (
     parse_type_ref_to_obj,
     Var,
 )
+import metalift.ir as ir
 from metalift.ir_util import MLType, is_object_pointer_type
 
 from metalift.synthesize_auto import synthesize as run_synthesis  # type: ignore
@@ -744,6 +745,12 @@ class VCVisitor:
                 setattr(blk_state, field_name, merged_vars)
 
     def visit_llvm_block(self, block: ValueRef) -> None:
+        blk_state = self.fn_blocks_states[block.name]
+        print("hehe block", block.name)
+        print("pointer vars", blk_state.pointer_vars)
+        print("primitive vars", blk_state.primitive_vars)
+
+        print()
         # First we need to preprocess the entry block or merge states for non-entry blocks
         if len(block.preds) == 0:
             self.preprocess(block)
@@ -833,8 +840,8 @@ class VCVisitor:
             ret_type = [IntObject for _ in range(int(t[-2]) + 1)]
             val = Lit(0, TupleT(*ret_type))
         elif t.startswith("%struct.tup"):
-            # TODO(jie)
-            val = Lit(0, TupleT(IntObject, IntObject))
+            # TODO(jie): support tuples of different lengths
+            val = ir.make_tuple(IntObject(0), IntObject(0))
         elif t.startswith(
             "%struct."
         ):  # not a tuple or set, assume to be user defined type

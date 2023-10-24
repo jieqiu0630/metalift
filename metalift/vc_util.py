@@ -1,11 +1,11 @@
 import re
 
 from llvmlite.binding import ValueRef
-from metalift.ir import And, Expr, Lit, BoolObject, IntObject, Or, get_object_sources
+from metalift.ir import And, Expr, Lit, BoolObject, IntObject, NewObject, Or, get_object_sources
 from typing import Dict
 
 
-def parseOperand(op: ValueRef, reg: Dict[str, Expr], hasType: bool = True) -> Expr:
+def parseOperand(op: ValueRef, reg: Dict[str, NewObject], hasType: bool = True) -> NewObject:
     # op is a ValueRef, and if it has a name then it's a register
     if op.name:  # a reg
         try:
@@ -19,13 +19,13 @@ def parseOperand(op: ValueRef, reg: Dict[str, Expr], hasType: bool = True) -> Ex
     elif hasType:  # i32 0
         val = re.search("\w+ (\S+)", str(op)).group(1)  # type: ignore
         if val == "true":
-            return Lit(True, BoolObject)
+            return BoolObject(True)
         elif val == "false":
-            return Lit(False, BoolObject)
+            return BoolObject(False)
         else:  # assuming it's a number
-            return Lit(int(val), IntObject)
+            return IntObject(int(val))
     else:  # 0
-        return Lit(int(op), IntObject)
+        return IntObject(int(op))
 
 
 def and_exprs(*exprs: Expr) -> Expr:
