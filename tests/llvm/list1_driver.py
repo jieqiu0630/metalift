@@ -13,7 +13,7 @@ def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
     select_pred1 = FnDecl("Select-pred1", BoolObject, (arg < 10).src, arg.src)
     select_pred2 = FnDecl("Select-pred2", BoolObject, (arg > 2).And(arg < 10), arg.src)
 
-    data = ListObject(IntObject, "l")
+    data = ListObject("l", IntObject)
     select_func = FnDeclRecursive(
         "Select",
         ListObject[IntObject],
@@ -120,7 +120,7 @@ if __name__ == "__main__":
         ps_grammar=ps_grammar
     )
 
-    v1 = ListObject(IntObject, "in")
+    v1 = ListObject("in", IntObject)
     driver.add_var_object(v1)
 
     test(v1)

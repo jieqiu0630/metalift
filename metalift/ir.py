@@ -14,6 +14,8 @@ from typing import (
     Literal,
     Set,
     TypeVar,
+    TypeVarTuple,
+    # TypeVarTuple,
     Union,
     Optional,
     Tuple,
@@ -45,11 +47,13 @@ class Expr:
 
     # TODO: move into per-type implementations
     def mapArgs(self, f: Callable[["Expr"], "Expr"]) -> "Expr":
-        if isinstance(self, NewObject):
-            from copy import deepcopy
-            new_object = deepcopy(self)
-            new_object.src = self.src.mapArgs(f)
-            return new_object
+        # if isinstance(self, NewObject):
+        #     from copy import deepcopy
+        #     new_object = deepcopy(self)
+        #     new_object.src = self.src.mapArgs(f)
+        #     return new_object
+        if isinstance(self, TupleVar):
+            return TupleVar(typing.cast(str, f(self.args[0])), self.type, self.length())
         if isinstance(self, Var):
             # TODO(jie)
             return Var(typing.cast(str, f(self.args[0])), self.type)
@@ -139,8 +143,8 @@ class Expr:
         if all([not Expr.__eq__(e, expr) for expr in commonExprs]) or skipTop:
             if isinstance(e, Expr):
                 newArgs = [Expr.replaceExprs(arg, commonExprs, mode) for arg in e.args]
-                if isinstance(e, NewObject):
-                    return Expr.replaceExprs(e.src, commonExprs, mode)
+                if isinstance(e, TupleVar):
+                    return TupleVar(typing.cast(str, newArgs[0]), e.type, e.length())
                 if isinstance(e, Var):
                     return Var(typing.cast(str, newArgs[0]), e.type)
                 elif isinstance(e, Lit):
@@ -483,7 +487,7 @@ def create_object(
     if isinstance(object_type, _GenericAlias):
         object_cls = get_origin(object_type)
         contained_types = get_args(object_type)
-        return object_cls(*contained_types, value)
+        return object_cls(value, *contained_types)
     else:
         return object_type(value)
 
@@ -513,6 +517,10 @@ def implies(e1: "BoolObject", e2: "BoolObject") -> "BoolObject":
 def call(fn_name: str, return_type: typing.Type["NewObject"], *object_args: "NewObject") -> "NewObject":
     call_expr = Call(fn_name, return_type, *get_object_sources(object_args))
     return create_object(return_type, call_expr)
+
+def make_tuple(*objects: "NewObject") -> "TupleObject":
+    obj_types = [obj.type for obj in objects]
+    return TupleObject(Tuple(*get_object_sources(objects)), *obj_types)
 
 class NewObject:
     src: Expr
@@ -715,8 +723,8 @@ T = TypeVar("T", bound=NewObject)
 class ListObject(Generic[T], NewObject):
     def __init__(
         self,
-        containedT: ObjectContainedT = IntObject,
         value: Optional[Union[Expr, str]] = None,
+        containedT: ObjectContainedT = IntObject,
     ) -> None:
         full_type = ListObject[containedT]
         if value is None:  # a symbolic variable
@@ -909,26 +917,25 @@ class SetObject(Generic[T], NewObject):
         else:
             return f"(Set {contained_type.toSMTType()})"
 
-IntT = TypeVar("IntT")
-class TupleObject(Generic[T, IntT], NewObject):
+# bound not yet supported for TypeVarTuple
+TupleT = TypeVarTuple("TupleT")
+class TupleObject(Generic[*TupleT], NewObject):
     def __init__(
         self,
-        containedT: Union[type, _GenericAlias] = IntObject,
-        intT: type = Literal[1],
         value: Optional[Union[Expr, str]] = None,
+        *contained_types: *TupleT,
     ) -> None:
-        full_type = TupleObject[containedT, intT]
+        full_type = TupleObject[*contained_types]
         if value is None:  # a symbolic variable
-            src = Var("v", full_type)
+            src = TupleVar("v", full_type, len(contained_types))
         elif isinstance(value, Expr):
             src = value
         elif isinstance(value, str):
-            src = Var(value, full_type)
+            src = TupleVar(value, full_type, len(contained_types))
         else:
             raise TypeError(f"Cannot create TupleObject from {value}")
-        self.containedT = containedT
-        self.intT = intT
-        NewObject.__init__(self, src, full_type)
+        self.contained_types = contained_types
+        NewObject.__init__(self, src)
 
     def __getitem__(
         self, index: Union[IntObject, int]
@@ -936,9 +943,12 @@ class TupleObject(Generic[T, IntT], NewObject):
         if isinstance(index, int):  # promote to IntObject
             index = IntObject(index)
         if isinstance(index, IntObject):
-            if issubclass(self.containedT, NewObject):
-                # TODO(jie) create a function to wrap objects around expession
-                return self.containedT(Call("tupleGet", self.containedT, self, index))
+            if not isinstance(index.src, Lit):
+                raise Exception("Only constant indices are supported!")
+            index_lit = index.src.val()
+            return_type = self.contained_types[index_lit]
+            if issubclass(return_type, NewObject):
+                return call("tupleGet", return_type, self, index)
             else:
                 raise Exception(
                     "Only primitive object types inside tuples are supported!"
@@ -954,18 +964,27 @@ class TupleObject(Generic[T, IntT], NewObject):
     def toSMTType(
         type_args: Tuple[Union[typing.Type["NewObject"], _GenericAlias]]
     ) -> str:
-        containedT, intT = type_args
-        tuple_length = get_args(intT)[0]
-        if isinstance(containedT, _GenericAlias):
-            containedT_str = get_origin(containedT).toSMTType(get_args(containedT))
-        else:
-            containedT_str = containedT.toSMTType()
-        return f"(Tuple{tuple_length} {' '.join([containedT_str] * tuple_length)})"  # this would call List.toSMTType(Int) for instance
+        tuple_length = len(type_args)
+        contained_type_strs: List[str] = []
+        for contained_type in type_args:
+            if isinstance(contained_type, _GenericAlias):
+                contained_type_str = get_origin(contained_type).toSMTType(get_args(contained_type))
+            else:
+                contained_type_str = contained_type.toSMTType()
+            contained_type_strs.append(contained_type_str)
+        return f"(Tuple{tuple_length} {' '.join(contained_type_strs)})"  # this would call List.toSMTType(Int) for instance
 
     # TODO(jie): handle contained type
     @staticmethod
-    def cls_str() -> str:
-        return "Tuple"
+    def cls_str(type_args: Tuple[ObjectContainedT] = ()) -> str:
+        contained_type_strs: List[str] = []
+        for contained_type in type_args:
+            if isinstance(contained_type, _GenericAlias):
+                contained_type_str = get_origin(contained_type).toSMTType(get_args(contained_type))
+            else:
+                contained_type_str = contained_type.toSMTType()
+            contained_type_strs.append(contained_type_str)
+        return f"Tuple {' '.join(contained_type_strs)}"
 
 ### END OF IR OBJECTS
 
@@ -990,6 +1009,12 @@ class Var(Expr):
     def accept(self, v: "Visitor[T]") -> T:
         return v.visit_Var(self)
 
+class TupleVar(Var):
+    def __init__(self, name: str, ty: typing.Type[NewObject], length: int) -> None:
+        Expr.__init__(self, ty, [name, length])
+
+    def length(self) -> str:
+        return self.args[1]  # type: ignor
 
 # used in defining grammars
 class NonTerm(Var):
@@ -1570,14 +1595,10 @@ class Call(Expr):
                             self.args[idx + 2].args[0],
                         )
                     )
-                elif isinstance(self.args[idx + 1], TupleObject):
-                    index_expr = self.args[idx + 2]
-                    # TODO(jie): this is not very clean, how to make it better?
-                    if isinstance(index_expr, IntObject):
-                        index = index_expr.src.args[0]
-                    else:
-                        index = index_expr.args[0]
-                    retVal.append(f"tuple{self.args[idx + 1].length}_get{index}")
+                elif isinstance(self.args[idx + 1], TupleVar):
+                    index_expr = self.args[idx + 2] # This must be an int lit
+                    index = index_expr.val()
+                    retVal.append(f"tuple{self.args[idx + 1].length()}_get{index}")
                 else:
                     # HACK: if function argument is a tuple, count I's in the mangled names of args to get number of elements in tuple
                     freq: typing.Counter[str] = Counter(
@@ -1766,7 +1787,8 @@ class Constraint(Expr):
 ## tuple functions
 class Tuple(Expr):
     def __init__(self, *args: Expr) -> None:
-        Expr.__init__(self, TupleT(*[a.type for a in args]), args)
+        tuple_contained_types = [a.type for a in args]
+        Expr.__init__(self, TupleObject[*tuple_contained_types], args)
 
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
