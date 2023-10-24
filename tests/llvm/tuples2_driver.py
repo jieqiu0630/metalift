@@ -1,9 +1,10 @@
 from typing import List
 
 from metalift.frontend.llvm import Driver
-from metalift.ir import (
-                         FnDeclRecursive, IntObject,TupleObject, NewObject, call, choose, make_tuple)
+from metalift.ir import (FnDeclRecursive, IntObject, NewObject, TupleObject,
+                         call, choose, make_tuple)
 from tests.python.utils.utils import codegen
+
 
 def tuple_add(t):
     return call("tuple_add", IntObject, t)
