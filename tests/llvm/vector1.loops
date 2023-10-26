@@ -1,5 +1,5 @@
 Printing analysis 'Natural Loop Information' for function '_Z4testNSt3__16vectorIiNS_9allocatorIiEEEE':
-Loop at depth 1 containing: %for.cond<header><exiting>,%bb,%for.body,%invoke.cont,%for.inc<latch>
+Loop at depth 1 containing: %for.cond<header><exiting>,%for.body,%invoke.cont,%for.inc<latch>
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEEC1Ev':
 Printing analysis 'Natural Loop Information' for function '_ZNKSt3__16vectorIiNS_9allocatorIiEEE4sizeEv':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__16vectorIiNS_9allocatorIiEEE9push_backERKi':
@@ -31,17 +31,14 @@ Printing analysis 'Natural Loop Information' for function '_ZNSt3__113__vector_b
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__116allocator_traitsINS_9allocatorIiEEE10deallocateERS2_Pim':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE7__allocEv':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__113__vector_baseIiNS_9allocatorIiEEE17__destruct_at_endEPi':
-Loop at depth 1 containing: %while.cond<header><exiting>,%bb,%while.body,%invoke.cont<latch>
+Loop at depth 1 containing: %while.cond<header><exiting>,%while.body,%invoke.cont<latch>
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__116allocator_traitsINS_9allocatorIiEEE7destroyIiEEvRS2_PT_':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__116allocator_traitsINS_9allocatorIiEEE9__destroyIiEEvNS_17integral_constantIbLb1EEERS2_PT_':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__19allocatorIiE7destroyEPi':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__19allocatorIiE10deallocateEPim':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__119__libcpp_deallocateEPvmm':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__117_DeallocateCaller33__do_deallocate_handle_size_alignEPvmm':
-Printing analysis 'Natural Loop Information' for function '_ZNSt3__124__is_overaligned_for_newEm':
-Printing analysis 'Natural Loop Information' for function '_ZNSt3__117_DeallocateCaller27__do_deallocate_handle_sizeEPvmSt11align_val_t':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__117_DeallocateCaller27__do_deallocate_handle_sizeEPvm':
-Printing analysis 'Natural Loop Information' for function '_ZNSt3__117_DeallocateCaller9__do_callISt11align_val_tEEvPvT_':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__117_DeallocateCaller9__do_callEPv':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__117__compressed_pairIPiNS_9allocatorIiEEE6secondEv':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__122__compressed_pair_elemINS_9allocatorIiEELi1ELb1EE5__getEv':
@@ -102,6 +99,6 @@ Printing analysis 'Natural Loop Information' for function '_ZNSt3__114__split_bu
 Printing analysis 'Natural Loop Information' for function '_ZNKSt3__114__split_bufferIiRNS_9allocatorIiEEE8capacityEv':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE17__destruct_at_endEPi':
 Printing analysis 'Natural Loop Information' for function '_ZNSt3__114__split_bufferIiRNS_9allocatorIiEEE17__destruct_at_endEPiNS_17integral_constantIbLb0EEE':
-Loop at depth 1 containing: %while.cond<header><exiting>,%bb,%while.body,%invoke.cont<latch>
+Loop at depth 1 containing: %while.cond<header><exiting>,%while.body,%invoke.cont<latch>
 Printing analysis 'Natural Loop Information' for function '_ZNKSt3__114__split_bufferIiRNS_9allocatorIiEEE9__end_capEv':
 Printing analysis 'Natural Loop Information' for function '_ZNKSt3__117__compressed_pairIPiRNS_9allocatorIiEEE5firstEv':
