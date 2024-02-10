@@ -205,39 +205,26 @@ class Expr:
         )
 
     @staticmethod
-    def findCommonExprs(
-        e: "Expr", cnts: pyList[pyTuple["Expr", int]]
-    ) -> pyList[pyTuple["Expr", int]]:
-        def expr_index_in_cnts(e: Expr) -> int:
-            for i, (existing_expr, _) in enumerate(cnts):
-                if Expr.__eq__(e, existing_expr):
-                    return i
-            return -1
-
-        expr_index = expr_index_in_cnts(e)
-        if expr_index == -1:
-            cnts.append((e, 1))
-            for i in range(len(e.args)):
-                if isinstance(e.args[i], Expr):
-                    cnts = Expr.findCommonExprs(e.args[i], cnts)
-        else:
-            _, cnt = cnts[expr_index]
-            cnts[expr_index] = (e, cnt + 1)
-        return cnts
+    def find_common_exprs(e: "Expr", common_exprs: pySet["ExprWrapper"]) -> None:
+        if not isinstance(e, Expr):
+            return
+        common_exprs.add(ExprWrapper(e))
+        for arg in e.args:
+            Expr.find_common_exprs(arg, common_exprs)
 
     @staticmethod
-    def replaceExprs(
+    def replace_exprs(
         e: Union[bool, "Expr", ValueRef, int, str],
-        commonExprs: typing.List[Union["Expr", Any]],
+        choose_common_exprs: pySet["ExprWrapper"],
         mode: PrintMode,
         skipTop: bool = False,
     ) -> Union["Expr", ValueRef]:
         # skipTop is used to ignore the top-level match when simplifying a common expr
-        if all([not Expr.__eq__(e, expr) for expr in commonExprs]) or skipTop:  # type: ignore
+        if skipTop or ExprWrapper(e) not in choose_common_exprs:
             if isinstance(e, Expr):
-                newArgs = [Expr.replaceExprs(arg, commonExprs, mode) for arg in e.args]
-                if isinstance(e, Object):
-                    return Expr.replaceExprs(e.src, commonExprs, mode)
+                newArgs = [
+                    Expr.replace_exprs(arg, choose_common_exprs, mode) for arg in e.args
+                ]
                 if isinstance(e, Var):
                     return Var(typing.cast(str, newArgs[0]), e.type)
                 elif isinstance(e, Lit):
@@ -293,9 +280,9 @@ class Expr:
         else:
             assert isinstance(e, Expr)
             if mode == PrintMode.Rosette:
-                return Var("(v%d)" % commonExprs.index(e), e.type)
+                return Var("(v%d)" % choose_common_exprs.index(e), e.type)
             else:
-                return Var("v%d" % commonExprs.index(e), e.type)
+                return Var("v%d" % choose_common_exprs.index(e), e.type)
 
     def __repr__(self) -> str:
         fn: Callable[[Union[ValueRef, Var]], Any] = (
@@ -767,6 +754,22 @@ def make_tuple_type(*containedT: Union[type, _GenericAlias]) -> typing.Type["Tup
 
 def make_fn_type(*containedT: ObjectT) -> typing.Type["Fn"]:  # type: ignore
     return Fn[typing.Tuple[containedT]]  # type: ignore
+
+
+class ExprWrapper:
+    def __init__(self, expr: "Expr") -> None:
+        self.expr = expr
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, ExprWrapper):
+            return False
+        return Expr.__eq__(self.object, other.object)
+
+    def __hash__(self) -> int:
+        return Expr.__hash__(self.object)
+
+    def __repr__(self) -> str:
+        return repr(self.object)
 
 
 class ObjectWrapper:
@@ -2495,19 +2498,19 @@ class Synth(Expr):
     def toRosette(
         self, writeChoicesTo: typing.Optional[Dict[str, "Expr"]] = None
     ) -> str:
-        cnts = Expr.findCommonExprs(self.args[1], [])
-        commonExprs = list(
-            filter(
-                lambda k: isinstance(k, Choose),
-                [expr_cnt_tup[0] for expr_cnt_tup in cnts],
-            )
+        common_exprs = set()
+        Expr.find_common_exprs(self.args[1], common_exprs)
+        choose_common_exprs = set(
+            filter(lambda k: isinstance(k.expr, Choose), common_exprs)
         )
-        rewritten = Expr.replaceExprs(self.args[1], commonExprs, PrintMode.Rosette)
+        rewritten = Expr.replace_exprs(
+            self.args[1], choose_common_exprs, PrintMode.Rosette
+        )
 
         # rewrite common exprs to use each other
-        commonExprs = [
-            Expr.replaceExprs(e, commonExprs, PrintMode.Rosette, skipTop=True)
-            for e in commonExprs
+        choose_common_exprs = [
+            Expr.replace_exprs(e, choose_common_exprs, PrintMode.Rosette, skipTop=True)
+            for e in choose_common_exprs
         ]
 
         args = " ".join(
@@ -2522,35 +2525,36 @@ class Synth(Expr):
         defs = "[rv (choose %s)]\n" % rewritten.toRosette()
 
         if writeChoicesTo != None:
-            for i, e in enumerate(commonExprs):
+            for i, e in enumerate(choose_common_exprs):
                 writeChoicesTo[f"v{i}"] = e  # type: ignore
 
         defs = defs + "\n".join(
             "%s %s)]" % ("[v%d (choose" % i, e.toRosette())
-            for i, e in enumerate(commonExprs)
+            for i, e in enumerate(choose_common_exprs)
         )
 
         return "(define-grammar (%s_gram %s)\n %s\n)" % (self.args[0], args, defs)
 
     def toSMT(self) -> str:
-        cnts = Expr.findCommonExprs(self.args[1], [])
-        commonExprs = list(
+        common_exprs = {}
+        Expr.find_common_exprs(self.args[1], common_exprs)
+        choose_common_exprs = set(
             filter(
-                lambda k: isinstance(k, Choose),
-                [expr_cnt_tup[0] for expr_cnt_tup in cnts],
+                lambda k: isinstance(k.expr, Choose),
+                common_exprs,
             )
         )
-        rewritten = Expr.replaceExprs(self.args[1], commonExprs, PrintMode.SMT)
+        rewritten = Expr.replace_exprs(self.args[1], choose_common_exprs, PrintMode.SMT)
 
         # rewrite common exprs to use each other
-        commonExprs = [
-            Expr.replaceExprs(e, commonExprs, PrintMode.SMT, skipTop=True)
-            for e in commonExprs
+        choose_common_exprs = [
+            Expr.replace_exprs(e, choose_common_exprs, PrintMode.SMT, skipTop=True)
+            for e in choose_common_exprs
         ]
 
         return_type = self.type.toSMTType(get_args(self.type))  # type: ignore
         common_exprs_types: pyList[str] = []
-        for expr in commonExprs:
+        for expr in choose_common_exprs:
             expr_type = parse_type_ref_to_obj(expr.type)
             expr_smt_type = expr_type.toSMTType(get_args(expr_type))  # type: ignore
             common_exprs_types.append(expr_smt_type)
@@ -2575,7 +2579,7 @@ class Synth(Expr):
                 common_exprs_types[i],
                 e.toSMT() if isinstance(e, Choose) else f"({e.toSMT()})",
             )
-            for i, e in enumerate(commonExprs)
+            for i, e in enumerate(choose_common_exprs)
         )
 
         body = decls + "\n" + "(" + defs + ")"
