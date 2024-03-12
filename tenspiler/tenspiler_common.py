@@ -1095,8 +1095,6 @@ vec_map = fn_decl_recursive(
     map_int_to_int_fn_obj,
 )
 
-# Uninterpreted functions
-# TODO(jie): this is returning a random prime
 vec_vec_to_vec_target_lang = [
     vec_elemwise_add,
     vec_elemwise_sub,
@@ -2120,7 +2118,6 @@ def get_loop_fns(
     right_bound_choices: List[Int],
     prefix: str = "OUTER_LOOP",
 ) -> Tuple[List[FnDecl], List[Synth], Callable, Callable, Callable]:
-    # TODO(jie): add return type
     if prefix not in {"OUTER_LOOP", "INNER_LOOP"}:
         raise Exception("Prefix must be one of OUTER_LOOP and INNER_LOOP")
 

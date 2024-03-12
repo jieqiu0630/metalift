@@ -130,8 +130,7 @@ def toSMT(
                         newArgs = filterArgs(t.args[2:])
                         fn_decls.append(
                             FnDeclRecursive(
-                                t.name(),  # TODO(jie): this only handles single function param
-                                # t.args[0] + "_" + i[1],
+                                t.name(),  # TODO: this only handles single function param
                                 t.returnT(),
                                 newBody,
                                 *newArgs,
@@ -139,8 +138,7 @@ def toSMT(
                             # if t.kind == Expr.Kind.FnDecl
                             if isinstance(t, FnDeclRecursive)
                             else FnDecl(
-                                t.name(),  # TODO(jie): this only handles single function param
-                                # t.args[0] + "_" + i[1],
+                                t.name(),  # TODO: this only handles single function param
                                 t.returnT(),
                                 newBody,
                                 *newArgs,

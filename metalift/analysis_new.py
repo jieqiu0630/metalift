@@ -181,7 +181,7 @@ def gen_expr(expr: ValueRef, fn_group: VariableGroup, env: StackEnv) -> Expr:
     opcode = expr.opcode
     operands = list(expr.operands)
     if opcode == "load":
-        # TODO(shadaj): handle situations where the load results in a pointer
+        # TODO: handle situations where the load results in a pointer
         return env[operands[0].name]
     elif opcode == "add":
         return ir.Add(
@@ -213,7 +213,7 @@ def gen_expr(expr: ValueRef, fn_group: VariableGroup, env: StackEnv) -> Expr:
     # elif opcode == "call":
     #     fnName = operands[-1] if isinstance(operands[-1], str) else operands[-1].name
     #     if fnName == "":
-    #         # TODO(shadaj): this is a hack around LLVM bitcasting the function before calling it on aarch64
+    #         # TODO: this is a hack around LLVM bitcasting the function before calling it on aarch64
     #         fnName = str(operands[-1]).split("@")[-1].split(" ")[0]
     #     if fnName in models_new.fn_models:
     #         return models_new.fn_models[fnName](
@@ -263,7 +263,7 @@ class RichBlock(object):
         operands = list(instruction.operands)
         if len(instruction.name) > 0:
             if instruction.opcode == "alloca":
-                # TODO(shadaj): parseTypeRef silently erases all levels of pointer indirection
+                # TODO: parseTypeRef silently erases all levels of pointer indirection
                 stack_var = fn_group.variable(
                     f"stack_{self.name}_{instruction.name}",
                     parse_type_ref_to_obj(instruction.type),
@@ -309,7 +309,7 @@ class RichBlock(object):
         if opcode == "ret":
             return next(gen_value(operands[0], fn_group))
         elif opcode == "br":
-            # TODO(shadaj): invoke invariant if target is loop header we are part of
+            # TODO: invoke invariant if target is loop header we are part of
             if len(operands) == 1:  # unconditional branch
                 return Implies(
                     fn_group.variable_or_existing(
@@ -423,7 +423,7 @@ class LoopBlock(RichBlock):
     ) -> None:
         super().__init__(name, instructions, part_of_loops, predecessors, successors)
 
-    # TODO(shadaj): vc condition that overrides stack env for variables written here
+    # TODO: vc condition that overrides stack env for variables written here
 
 
 class AnalysisResult(object):
@@ -515,7 +515,7 @@ def analyze(
     loop_info_list = parseLoops(loopsFile, fnName, log=False)
     loop_info_dict = {}
     for loop in loop_info_list:
-        # TODO(shadaj): I believe there is always only one header
+        # TODO: I believe there is always only one header
         # see https://llvm.org/docs/LoopTerminology.html
         assert len(loop.header) == 1
         loop_info_dict[loop.header[0]] = loop

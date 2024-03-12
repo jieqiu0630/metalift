@@ -44,7 +44,6 @@ class CType(Enum):
         return True
 
 
-# TODO(jie): think of a better name
 class GaudiBodyType(CType, Enum):
     """Gaudi types used in the body (inside the loops). All C types are supported in the Gaudi body."""
 
@@ -88,9 +87,7 @@ class GaudiHeaderType(CType, Enum):
     def from_ir_and_data_type(ir_type: ObjectT, d_type: DataType) -> "GaudiHeaderType":
         if is_list_type(ir_type) or is_matrix_type(ir_type):
             return GaudiHeaderType.TENSOR
-        elif (
-            ir_type is Int
-        ):  # TODO(jie): double check if you can compare types like this
+        elif ir_type is Int:
             if d_type == DataType.FLOAT:
                 return GaudiHeaderType.FLOAT
             else:
@@ -584,7 +581,7 @@ def gaudi_codegen(
                         first_arg_metadata,
                     )
 
-                # TODO(jie): move convert to end of this function
+                # TODO: move convert to end of this function
                 if first_arg_metadata.dest_type != expected_arg_type:
                     first_arg_metadata = convert_arg(
                         first_arg_metadata.dest_name,

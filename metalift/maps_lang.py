@@ -12,7 +12,7 @@
 #     def list_tail(l: Expr, i: Expr) -> Expr:
 #         return Call("list_tail", ListT(Int()), l, i)
 
-#     # TODO(shadaj): proper generics support, manually handled in Rosette parser for now
+#     # TODO: proper generics support, manually handled in Rosette parser for now
 #     data = Var("data", ListT(Int()))
 #     lr_fn = Var("f", FnT(Int(), Int(), Int()))
 #     initial = Var("initial", Int())
@@ -33,7 +33,7 @@
 #         initial,
 #     )
 
-#     # TODO(shadaj): proper generics support, manually handled in Rosette parser for now
+#     # TODO: proper generics support, manually handled in Rosette parser for now
 #     data_bool = Var("data", ListT(Bool()))
 #     lr_fn_bool = Var("f", FnT(Bool(), Bool(), Bool()))
 #     initial_bool = Var("initial", Bool())
