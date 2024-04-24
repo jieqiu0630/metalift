@@ -4,10 +4,9 @@ ECOOP submission number for the paper: 220
 
 # Metadata
 **No need to provide them again in the submission**
-[comment]TODO: fill this
 - Docker building time: ~20 minutes.
 - Docker image size: ~15GB.
-- Memory used at peak: ~10GB ??? TODO
+- Memory used at peak: ~3GB.
 - Which badges do you claim for your artifact? Functional? Reusable? Available?
     - We claim all three badges.
 
@@ -17,9 +16,9 @@ ECOOP submission number for the paper: 220
     ```
     docker build -t tenspiler .
     ```
-2. Run the container and spawn a shell (TODO(jie))
+2. Run the container and spawn a shell
     ```
-    docker run -v $(pwd):/code/metalift -it tenspiler /bin/bash
+    docker run --rm -v $(pwd):/code/metalift -it tenspiler /bin/bash
     ```
     **Note**: For any `python` command in the Docker environment, please prefix with `poetry run` (as included in all provided commands).
 
@@ -41,7 +40,7 @@ ECOOP submission number for the paper: 220
     ```
     The generated NumPy code can be found at `./tenspiler/generated_code/numpy/blas/dot_np.py`.
 
-4. We can evaluate the performance of the generated NumPy code on a subset of ImageNet dataset, located [here](./tenspiler/data_sampled/). (TODO(jie) fix path) We compare against running C++ code compiled with `-O3` flag.
+4. We can evaluate the performance of the generated NumPy code on a subset of ImageNet dataset, located at `./tenspiler/data_sampled/`. We compare against running C++ code compiled with `-O3` flag.
     ```
     poetry run python tenspiler/benchmarking/numpy_speedup_exec.py dot
     ```
@@ -75,15 +74,14 @@ We agree to publish the artifacts.
 
 ## Generating Code per Backend
 As stated in our paper section 6.1.2, Tenspiler can target 6 different backends for 69 benchmarks. To translate all 69 benchmarks to executable code for each backend, run
-TODO(jie): fix
 ```
-poetry shell python tenspiler/generated_code/<backend>/generate_<backend>_benchmarks.py ALL
+poetry run python tenspiler/generated_code/<backend>/generate_<backend>_benchmarks.py ALL
 ```
-which writes the translated code to `tenspiler/generated_code/<backend>/(blend|llama|c2taco)/`. Note this could take a while (TODO: put time).
+which writes the translated code to `./tenspiler/generated_code/<backend>/(blend|llama|c2taco)/`. Note this could take around 30 minutes for each backend.
 
-To test a single benchmark, run (TODO jie)
+To test a single benchmark, run
 ```
-poetry shell python tenspiler/generated_code/<backend>/generate_<backend>_benchmarks.py <benchmark-name>
+poetry run python tenspiler/generated_code/<backend>/generate_<backend>_benchmarks.py <benchmark-name>
 ```
 
 ## Backend Descriptions
