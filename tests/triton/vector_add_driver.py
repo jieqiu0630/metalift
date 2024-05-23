@@ -1,63 +1,81 @@
 import time
+from collections import defaultdict
+from typing import List, Union
 
-from metalift.frontend.triton import Driver
-from metalift.ir import Int, Matrix
+from metalift.frontend.triton import Driver, InvGrammar
+from metalift.ir import Bool, FnDecl, FnDeclRecursive, Int, Axiom, implies
+from metalift.ir import List as mlList
+from metalift.ir import Object, choose
+from metalift.vc_util import and_objects
 from tenspiler.codegen.utils import DataType
-from tenspiler.tenspiler_common import (
-    get_matrix_computation_holing_search_space,
-    linear_dodge_8_hole_body,
-)
+from tenspiler.tenspiler_common import call_vec_elemwise_add, vec_elemwise_add
 from tenspiler.utils.synthesis_utils import run_synthesis_algorithm
-from tenspiler.axioms_tenspiler import matrix_elemwise_add_axiom
+from tenspiler.axioms_tenspiler import vec_elemwise_add_axiom
+
+
+def target_lang() -> List[Union[FnDecl, FnDeclRecursive]]:
+    return [vec_elemwise_add, vec_elemwise_add_axiom]
+
+
+def ps_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
+) -> Bool:
+    x_ptr = reads[0]
+    y_ptr = reads[1]
+    output_ptr = reads[2]
+    n_elements = reads[3]
+    vec = choose(x_ptr[:n_elements], y_ptr[:n_elements])
+    return output_ptr == call_vec_elemwise_add(vec, vec)
+
+
+def inv_grammar(
+    writes: List[Object], reads: List[Object], in_scope: List[Object], relaxed: bool
+) -> Bool:
+    # a, b, n = reads
+    # out, i, _ = writes
+    # vec = choose(a[:i], b[:i])
+    print(writes)
+    print(reads)
+    exit(0)
+
+    x_ptr = reads[0]
+    y_ptr = reads[1]
+    output_ptr = reads[2]
+    n_elements = reads[3]
+    vec = choose(x_ptr[:n_elements], y_ptr[:n_elements])
+    i, _ = writes
+    return and_objects(i >= 0, i <= n_elements, output_ptr == call_vec_elemwise_add(vec, vec))
+
 
 if __name__ == "__main__":
     driver = Driver()
-    (
-        inv0_grammar,
-        inv1_grammar,
-        ps_grammar_fn,
-        target_lang,
-        fns_synths,
-    ) = get_matrix_computation_holing_search_space(linear_dodge_8_hole_body)
-
-    def target_lang_axiom():
-        return target_lang() + [matrix_elemwise_add_axiom]
-
-    linear_dodge_8 = driver.analyze(
-        llvm_filepath="tenspiler/blend/cpp/for_synthesis/linear_dodge_8.ll",
-        loops_filepath="tenspiler/blend/cpp/for_synthesis/linear_dodge_8.loops",
-        fn_name="linear_dodge_8",
-        target_lang_fn=target_lang_axiom,
-        inv_grammars={
-            "linear_dodge_8_inv0": inv0_grammar,
-            "linear_dodge_8_inv1": inv1_grammar,
-        },
-        ps_grammar=ps_grammar_fn,
+    vector_add = driver.analyze(
+        filepath="tests/triton/vector_add.py", 
+        fn_name="add_kernel", 
+        target_lang_fn=target_lang,
+        inv_grammar=defaultdict(lambda: InvGrammar(inv_grammar, [])),
+        ps_grammar=ps_grammar,
     )
 
-    base = Matrix(Int, "base")
-    active = Matrix(Int, "active")
-    driver.add_var_objects([base, active])
+    x_ptr = mlList(Int, "x_ptr")
+    y_ptr = mlList(Int, "y_ptr")
+    output_ptr = mlList(Int, "output_ptr")
+    n_elements = Int("n_elements")
+    BLOCK_SIZE = Int("BLOCK_SIZE")
 
-    # Add preconditions
-    driver.add_precondition(base.len() > 1)
-    driver.add_precondition(base.len() == active.len())
-    driver.add_precondition(base[0].len() == active[0].len())
-
-    driver.fns_synths = fns_synths
+    driver.add_var_objects([x_ptr, y_ptr, output_ptr, n_elements, BLOCK_SIZE])
+    driver.add_precondition(n_elements >= 1)
+    driver.add_precondition(x_ptr.len() >= n_elements)
+    driver.add_precondition(y_ptr.len() >= n_elements)
 
     start_time = time.time()
-    linear_dodge_8(base, active)
+    vector_add(x_ptr, y_ptr, output_ptr, n_elements, BLOCK_SIZE)
     run_synthesis_algorithm(
         driver=driver,
-        data_type=DataType.UINT_8,
-        benchmark_name="linear_dodge_8",
+        data_type=DataType.INT32,
+        benchmark_name="vector_add",
         has_relaxed=False,
     )
     end_time = time.time()
     print(f"Synthesis took {end_time - start_time} seconds")
 
-if __name__ == "__main__":
-    filename = "tests/triton/vector_add.py"
-
-   

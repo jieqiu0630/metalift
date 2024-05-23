@@ -1,6 +1,6 @@
 import copy
 import re
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, Union, cast
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, Union, cast, NamedTuple
 
 from mypy import build
 from mypy.build import BuildResult
@@ -82,6 +82,18 @@ from metalift.vc_util import and_objects, or_objects
 # TypeError: interpreted classes cannot inherit from compiled traits
 # from https://github.com/python/mypy
 # python3 -m pip install --no-binary mypy -U mypy
+
+
+InvGrammar = NamedTuple(
+    "InvGrammar",
+    [
+        (
+            "func",
+            Callable[[List[Object], List[Object], List[Object]], Bool],
+        ),
+        ("in_scope_var_names", List[str]),
+    ],
+)
 
 
 def parse(path: str, modulename: str) -> BuildResult:
@@ -940,6 +952,8 @@ class MetaliftFunc:
         assert tree is not None
 
         for o in tree.defs:
+            if isinstance(o, FuncDef):
+                print(o.name)
             if isinstance(o, FuncDef) and o.name == name:
                 self.ast = o
                 break
