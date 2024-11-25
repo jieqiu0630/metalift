@@ -35,26 +35,9 @@ def _run_fuzzer_tests_and_get_messages(
     func_name: str, ps_sol: str, test_case_dir: Path, limit: Optional[int] = None
 ) -> str:
     print("Running fuzzer tests")
-    import pdb
-
-    pdb.set_trace()
     # Now we pass the solution to the fuzzer
     wrong_test_cases: list[str] = []
     curr_fuzzer_feedback = None
-    # input = {
-    #     "base": [[7, 8, 9], [10, 11, 12]],
-    #     "active": [[1, 2, 3], [4, 5, 6]],
-    # }
-    # expected_output = [[7, 20, 25], [27, 28, 29]]
-    # actual, error = _run_test(func_name=func_name, ps_sol=ps_sol, inputs=input)
-    # if actual != expected_output or error is not None:
-    #     curr_fuzzer_feedback = get_fuzzer_feedback(
-    #         inputs=[input],
-    #         expected_outputs=[expected_output],
-    #         actual_or_errors=[actual or error],
-    #     )
-    #     return curr_fuzzer_feedback
-    # return None
 
     for test_case_file in test_case_dir.rglob("*.json"):
         with open(test_case_file) as f:
@@ -135,10 +118,6 @@ def get_solution_from_gemini(messages: list[dict[str, Any]]) -> str:
         message["parts"] = message["content"]
         del message["content"]
 
-    import pdb
-
-    pdb.set_trace()
-
     genai.configure(api_key="AIzaSyBbELW0-tYAuIHPf7DQiJ3Csik_LCbsy9c")
 
     generation_config = {
@@ -158,7 +137,6 @@ def get_solution_from_gemini(messages: list[dict[str, Any]]) -> str:
 
     chat_session = model.start_chat(history=messages_copy[:-1])
     response = chat_session.send_message(messages_copy[-1]["parts"])
-    print("RAW RESPONSE", response.text)
     raw_solution = extract(response.text)[0]
     extracted_solution = replace_ite(raw_solution)
     return extracted_solution
@@ -325,15 +303,16 @@ def get_solution_from_gpt(messages: list[dict[str, Any]]) -> str:
     print("running with gpt")
     messages_with_sys = [{"role": "system", "content": TEMPLATE_SYS}, *messages]
     outputs = openai_client.chat.completions.create(
-        model="gpt-4",  # model to use gpt-4o-2024-08-06
+        model="gpt-4o-2024-11-20",  # model to use gpt-4o-2024-08-06
         messages=messages_with_sys,
         n=1,
         temperature=0.7,
     )
     outputs = [choice.message.content for choice in outputs.choices]
-    raw_output = extract(outputs[0])[0]
-    extracted_output = replace_ite(raw_output)
-    return extracted_output
+    # raw_output = extract(outputs[0])[0]
+    # extracted_output = replace_ite(raw_output)
+    # return extracted_output
+    return outputs[0]
 
 
 # Define all the clients that are needed
@@ -350,7 +329,7 @@ def run_llm(
     source_code: str,
     test_case_dir: Path,
     max_num_tries_per_solution: int = 5,
-    max_num_tries: int = 10,
+    max_num_tries: int = 5,
 ) -> dict[str, Any]:
     """
     The flow of the function is as follows:
@@ -363,11 +342,10 @@ def run_llm(
     - solutions: A list of solutions that we tried to pass to parser and fuzzer. Each solution is in the form of (solution, feedback, time_taken) tuple. For the correct solution, feedback is None.
     """
     info: list[Any] = []
-
-    message = get_inv(suite_name, benchmark_name, dsl_code)
+    message = get_ps_prompt(dsl_code, source_code)
     with open(f"{benchmark_name}.txt", "w") as f:
         f.write(message)
-        f.flush()
+    # message = get_inv(suite_name, benchmark_name, dsl_code)
 
     # This is the function name to run. Will be updated once we pass the parser.
     func_name = None
@@ -388,11 +366,11 @@ def run_llm(
         else:
             messages_for_new_sol = [template_message]
         curr_solution = get_solution_from_llm(llm_model, messages_for_new_sol)
-        try:
-            check_solution(curr_solution, 1 if is_single_loop(benchmark_name) else 2)
-            print("Passed the parser")
-        except Exception as e:
-            print("Failed to pass the parser", e)
+        # try:
+        #     check_solution(curr_solution, 1 if is_single_loop(benchmark_name) else 2)
+        #     print("Passed the parser")
+        # except Exception as e:
+        #     print("Failed to pass the parser", e)
         info.append([])
         info[i].append((curr_solution, None))
         print("New solution is", curr_solution)
@@ -468,9 +446,6 @@ def run_llm(
             curr_fuzzer_feedback = _run_fuzzer_tests_and_get_messages(
                 func_name=func_name, ps_sol=curr_solution, test_case_dir=test_case_dir
             )
-            import pdb
-
-            pdb.set_trace()
 
             if curr_fuzzer_feedback is None:
                 print("All test cases passed, found correct solution")
@@ -495,7 +470,7 @@ if __name__ == "__main__":
     BENCHMARKS_PATH = TENSPILER_LLM_PATH / "benchmarks"
     DSL_CODE_PATH = TENSPILER_LLM_PATH / "python_dsl.py"
 
-    with open("tenspiler/llm/python_dsl.py") as f:
+    with open("tenspiler/llm/python_dsl_without_matrix_add.py") as f:
         dsl_code = f.read()
 
     all_suites = {"blend", "llama", "polybench"}
