@@ -15,11 +15,20 @@ from tenspiler.llm.scripts.utils import (
     replace_ite,
 )
 
-load_dotenv()
+openai_client = None
+claude_client = None
+gemini_client = None
 
-openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-claude_client = anthropic.Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
-gemini_client = genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+def load_clients(env_file_path: str):
+    global openai_client, claude_client, gemini_client
+
+    # Load the environment variables from the specified env_file_path
+    load_dotenv(dotenv_path=env_file_path)
+
+    openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    claude_client = anthropic.Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
+    gemini_client = genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 
 class LLMModel(Enum):
@@ -86,7 +95,10 @@ def get_solution_from_gemini(messages: list[dict[str, Any]]) -> str:
     return extracted_solution
 
 
-def get_solution_from_llm(llm_model: LLMModel, messages: list[dict[str, Any]]) -> str:
+def get_solution_from_llm(
+    llm_model: LLMModel, messages: list[dict[str, Any]], env_file_path: str
+) -> str:
+    load_clients(env_file_path)
     if llm_model == LLMModel.CLAUDE:
         return get_solution_from_claude(messages)
     elif llm_model == LLMModel.GPT:

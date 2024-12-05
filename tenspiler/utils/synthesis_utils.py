@@ -149,6 +149,7 @@ def run_llm_synthesis_algorithm(
     *,
     driver: Driver,
     source_file: str,
+    env_file_path: str,
     suite_name: str,
     benchmark_name: str,
     llm_model: LLMModel,
@@ -187,7 +188,7 @@ def run_llm_synthesis_algorithm(
             ]
         else:
             messages_for_new_sol = [inv_template_message]
-        # ps_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
+        # ps_sol = get_solution_from_llm(llm_model, messages_for_new_sol, env_file_path)
         ps_sol = """
         def linear_dodge_8(base: List[List[int]], active: List[List[int]]) -> List[List[int]]:
             return matrix_elemwise_add(base, active)
@@ -225,7 +226,7 @@ def run_llm_synthesis_algorithm(
                 ]
             else:
                 messages_for_new_sol = [inv_template_message]
-            # inv_sol = get_solution_from_llm(llm_model, messages_for_new_sol)
+            # inv_sol = get_solution_from_llm(llm_model, messages_for_new_sol, env_file_path)
             inv_sol = f"""
             def invariant1(row: int, base: List[List[int]], active: List[List[int]], out: List[List[int]]) -> bool:
                 return row >= 0 and row <= len(base) and out == matrix_elemwise_add(base[:row], active[:row])
