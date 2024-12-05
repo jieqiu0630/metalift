@@ -30,6 +30,7 @@ if __name__ == "__main__":
     run_llm_synthesis_algorithm(
         driver=driver,
         source_file="tenspiler/blend/cpp/for_synthesis/linear_dodge_8.cc",
+        env_file_path="./.env",
         suite_name="blend",
         benchmark_name="linear_dodge_8",
         llm_model=LLMModel.GPT,
